@@ -1,103 +1,230 @@
-import Image from "next/image";
+"use client"
+
+import { useEffect, useState } from "react"
+import Link from "next/link"
+import { ethers } from "ethers"
+import { motion } from "framer-motion"
+import { Button } from "@/components/ui/button"
+import { Card } from "@/components/ui/card"
+import CampaignCard from "@/components/campaign-card"
+import ConnectWallet from "@/components/connect-wallet"
+import CampaignSkeleton from "@/components/campaign-skeleton"
+import { getContract } from "@/lib/contract"
+import { ArrowRight, Plus, Sparkles } from "lucide-react"
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const [campaigns, setCampaigns] = useState([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [account, setAccount] = useState(null)
+  const [provider, setProvider] = useState(null)
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+  useEffect(() => {
+    const init = async () => {
+      if (window.ethereum) {
+        try {
+          const provider = new ethers.BrowserProvider(window.ethereum)
+          setProvider(provider)
+
+          const accounts = await provider.listAccounts()
+          if (accounts.length > 0) {
+            setAccount(accounts[0].address)
+          }
+
+          await fetchCampaigns(provider)
+        } catch (error) {
+          console.error("Error initializing:", error)
+        }
+      }
+    }
+
+    init()
+  }, [])
+
+  const fetchCampaigns = async (provider) => {
+    try {
+      setIsLoading(true)
+      const contract = await getContract(provider)
+      const campaignCount = await contract.campaignCount()
+
+      const campaignsData = []
+      for (let i = 1; i <= campaignCount; i++) {
+        const campaign = await contract.campaigns(i)
+        campaignsData.push({
+          id: i,
+          creator: campaign.CampaignCreator,
+          name: campaign.CampaignName,
+          description: campaign.CampaignDescription,
+          target: ethers.formatEther(campaign.CampaignTarget),
+          deadline: new Date(Number(campaign.CampaignDeadline) * 1000).toLocaleDateString(),
+          amountRaised: ethers.formatEther(campaign.CampaignAmountRaised),
+          completed: campaign.CampaignCompleted,
+          rawDeadline: Number(campaign.CampaignDeadline),
+        })
+      }
+
+      setCampaigns(campaignsData)
+    } catch (error) {
+      console.error("Error fetching campaigns:", error)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleAccountChange = (newAccount) => {
+    setAccount(newAccount)
+    if (provider) {
+      fetchCampaigns(provider)
+    }
+  }
+
+  const container = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1,
+      },
+    },
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-background to-background/80">
+      {/* Hero Section */}
+      <section className="relative overflow-hidden bg-primary/5 py-20">
+        <div className="absolute inset-0 bg-grid-white/10 [mask-image:linear-gradient(0deg,transparent,rgba(255,255,255,0.6),transparent)]"></div>
+        <div className="container relative mx-auto px-4">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="mx-auto max-w-3xl text-center"
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ delay: 0.2, duration: 0.5 }}
+              className="mb-4 inline-flex items-center rounded-full bg-primary/10 px-3 py-1 text-sm font-medium text-primary"
+            >
+              <Sparkles className="mr-1 h-3.5 w-3.5" />
+              Decentralized Crowdfunding
+            </motion.div>
+            <motion.h1
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3, duration: 0.5 }}
+              className="mb-4 text-4xl font-extrabold tracking-tight sm:text-5xl md:text-6xl"
+            >
+              Fund<span className="text-primary">Chain</span>
+            </motion.h1>
+            <motion.p
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4, duration: 0.5 }}
+              className="mb-8 text-lg text-muted-foreground"
+            >
+              Transparent, secure, and decentralized crowdfunding platform powered by blockchain technology.
+            </motion.p>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5, duration: 0.5 }}
+              className="flex flex-col sm:flex-row justify-center gap-4"
+            >
+              {account ? (
+                <Link href="/create">
+                  <Button size="lg" className="gap-2">
+                    <Plus className="h-4 w-4" />
+                    Create Campaign
+                  </Button>
+                </Link>
+              ) : (
+                <ConnectWallet
+                  account={account}
+                  onAccountChange={handleAccountChange}
+                  buttonText="Connect Wallet to Start"
+                  size="lg"
+                />
+              )}
+              <Button variant="outline" size="lg" asChild>
+                <Link href="#campaigns" className="gap-2">
+                  Explore Campaigns
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+              </Button>
+            </motion.div>
+          </motion.div>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+
+        {/* Animated background elements */}
+        <div className="absolute -top-40 -right-40 h-80 w-80 rounded-full bg-primary/20 blur-3xl"></div>
+        <div className="absolute -bottom-40 -left-40 h-80 w-80 rounded-full bg-primary/20 blur-3xl"></div>
+      </section>
+
+      {/* Campaigns Section */}
+      <section id="campaigns" className="container mx-auto px-4 py-16">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
+          <div>
+            <h2 className="text-3xl font-bold tracking-tight">Active Campaigns</h2>
+            <p className="text-muted-foreground mt-1">Discover and support innovative projects</p>
+          </div>
+          <div className="flex items-center gap-4">
+            <ConnectWallet account={account} onAccountChange={handleAccountChange} />
+            {account && (
+              <Link href="/create">
+                <Button className="gap-2">
+                  <Plus className="h-4 w-4" />
+                  Create Campaign
+                </Button>
+              </Link>
+            )}
+          </div>
+        </div>
+
+        {isLoading ? (
+          <motion.div
+            variants={container}
+            initial="hidden"
+            animate="show"
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+          >
+            {[...Array(6)].map((_, index) => (
+              <CampaignSkeleton key={index} />
+            ))}
+          </motion.div>
+        ) : campaigns.length > 0 ? (
+          <motion.div
+            variants={container}
+            initial="hidden"
+            animate="show"
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+          >
+            {campaigns.map((campaign) => (
+              <CampaignCard key={campaign.id} campaign={campaign} account={account} />
+            ))}
+          </motion.div>
+        ) : (
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
+            <Card className="p-8 text-center border-dashed">
+              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
+                <Plus className="h-8 w-8 text-primary" />
+              </div>
+              <h2 className="text-xl font-semibold mb-2">No campaigns found</h2>
+              <p className="text-muted-foreground mb-6">Be the first to create a crowdfunding campaign!</p>
+              {account ? (
+                <Link href="/create">
+                  <Button>Create Campaign</Button>
+                </Link>
+              ) : (
+                <ConnectWallet
+                  account={account}
+                  onAccountChange={handleAccountChange}
+                  buttonText="Connect Wallet to Create Campaign"
+                />
+              )}
+            </Card>
+          </motion.div>
+        )}
+      </section>
     </div>
-  );
+  )
 }
