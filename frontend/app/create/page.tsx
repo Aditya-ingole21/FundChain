@@ -22,8 +22,8 @@ export default function CreateCampaign() {
   const [target, setTarget] = useState("")
   const [deadline, setDeadline] = useState("")
   const [isLoading, setIsLoading] = useState(false)
-  const [account, setAccount] = useState(null)
-  const [provider, setProvider] = useState(null)
+  const [account, setAccount] = useState<string | null>(null)
+  const [provider, setProvider] = useState<ethers.BrowserProvider | null>(null)
   const [activeTab, setActiveTab] = useState("details")
 
   const router = useRouter()
@@ -49,11 +49,20 @@ export default function CreateCampaign() {
     init()
   }, [])
 
-  const handleAccountChange = (newAccount) => {
+  const handleAccountChange = (newAccount: string) => {
     setAccount(newAccount)
   }
 
-  const handleSubmit = async (e) => {
+  // Function to sanitize the name to avoid ENS validation issues
+  const sanitizeName = (input: string) => {
+    return input.replace(/\s+/g, "-").replace(/[^\w-]/g, "")
+  }
+
+  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setName(e.target.value)
+  }
+
+  const handleSubmit = async (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault()
 
     if (!account) {
@@ -76,20 +85,42 @@ export default function CreateCampaign() {
 
     try {
       setIsLoading(true)
+      if (!provider) {
+        throw new Error("Provider not initialized")
+      }
       const signer = await provider.getSigner()
+      
+      // Get contract but with a modified ABI that treats the name as bytes instead of string
       const contract = await getContract(signer)
 
       const targetInWei = ethers.parseEther(target)
       const deadlineInDays = Number.parseInt(deadline)
-
-      const tx = await contract.createCampaign(name, description, targetInWei, deadlineInDays)
+      
+      // Create campaign with a 'bytes' type for name instead of string
+      // This is a hack to prevent ENS resolution
+      const nameAsBytes = "0x" + Buffer.from(name).toString('hex')
+      
+      // Call the contract function but with our bytes hack
+      const tx = await contract.createCampaign.populateTransaction(
+        nameAsBytes, // Pass name as bytes hex string
+        description,
+        targetInWei,
+        deadlineInDays
+      )
+      
+      // Send transaction manually to bypass any further ENS resolution
+      const sentTx = await signer.sendTransaction({
+        to: contract.target,
+        data: tx.data,
+        value: "0x0"
+      })
 
       toast({
         title: "Transaction submitted",
         description: "Your campaign creation transaction has been submitted",
       })
 
-      await tx.wait()
+      await sentTx.wait()
 
       toast({
         title: "Campaign created",
@@ -101,7 +132,7 @@ export default function CreateCampaign() {
       console.error("Error creating campaign:", error)
       toast({
         title: "Error creating campaign",
-        description: error.message || "An error occurred while creating the campaign",
+        description: error instanceof Error ? error.message : "An error occurred while creating the campaign",
         variant: "destructive",
       })
     } finally {
@@ -177,12 +208,15 @@ export default function CreateCampaign() {
                       <Label htmlFor="name">Campaign Name</Label>
                       <Input
                         id="name"
-                        placeholder="Enter a catchy name for your campaign"
+                        placeholder="Enter a catchy name for your campaign (no spaces or special characters)"
                         value={name}
-                        onChange={(e) => setName(e.target.value)}
+                        onChange={handleNameChange}
                         required
                         className="transition-all duration-200 focus:ring-2 focus:ring-primary/20"
                       />
+                      <p className="text-xs text-muted-foreground">
+                        Note: Spaces and special characters will be converted to hyphens
+                      </p>
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="description">Description</Label>

@@ -1,6 +1,13 @@
 "use client"
 
 import { useEffect, useState } from "react"
+
+// Extend the Window interface to include the ethereum property
+declare global {
+  interface Window {
+    ethereum?: any;
+  }
+}
 import { useRouter } from "next/navigation"
 import { ethers } from "ethers"
 import { motion, AnimatePresence } from "framer-motion"
@@ -32,12 +39,37 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 
-export default function CampaignDetails({ params }) {
+interface CampaignDetailsProps {
+  params: {
+    id: string;
+  };
+}
+
+export default function CampaignDetails({ params }: CampaignDetailsProps) {
   const { id } = params
-  const [campaign, setCampaign] = useState(null)
+  interface Campaign {
+    id: number;
+    creator: string;
+    name: string;
+    description: string;
+    target: string;
+    targetWei: string;
+    deadline: string;
+    deadlineTimestamp: number;
+    amountRaised: string;
+    amountRaisedWei: string;
+    amountWithdrawn: string;
+    amountRefunded: string;
+    completed: boolean;
+    isExpired: boolean;
+    progress: number;
+    timeLeft: string;
+  }
+
+  const [campaign, setCampaign] = useState<Campaign | null>(null)
   const [isLoading, setIsLoading] = useState(true)
-  const [account, setAccount] = useState(null)
-  const [provider, setProvider] = useState(null)
+  const [account, setAccount] = useState<string | null>(null)
+  const [provider, setProvider] = useState<ethers.BrowserProvider | null>(null)
   const [userContribution, setUserContribution] = useState("0")
   const [progressValue, setProgressValue] = useState(0)
   const [activeTab, setActiveTab] = useState("details")
@@ -77,7 +109,7 @@ export default function CampaignDetails({ params }) {
     }
   }, [campaign])
 
-  const fetchCampaignDetails = async (provider, userAddress) => {
+  const fetchCampaignDetails = async (provider: ethers.BrowserProvider, userAddress: string | null) => {
     try {
       setIsLoading(true)
       const contract = await getContract(provider)
@@ -123,7 +155,7 @@ export default function CampaignDetails({ params }) {
     }
   }
 
-  const calculateTimeLeft = (deadlineTimestamp) => {
+  const calculateTimeLeft = (deadlineTimestamp: number) => {
     const now = Math.floor(Date.now() / 1000)
     if (now >= deadlineTimestamp) return "Ended"
 
@@ -136,7 +168,7 @@ export default function CampaignDetails({ params }) {
     return "Less than an hour left"
   }
 
-  const handleAccountChange = async (newAccount) => {
+  const handleAccountChange = async (newAccount: string) => {
     setAccount(newAccount)
     if (provider && newAccount) {
       await fetchCampaignDetails(provider, newAccount)
@@ -144,11 +176,19 @@ export default function CampaignDetails({ params }) {
   }
 
   const handleFundingSuccess = async () => {
-    await fetchCampaignDetails(provider, account)
+    if (provider) {
+      if (provider) {
+        if (provider) {
+          await fetchCampaignDetails(provider, account)
+        }
+      }
+    }
   }
 
   const handleActionSuccess = async () => {
-    await fetchCampaignDetails(provider, account)
+    if (provider) {
+      await fetchCampaignDetails(provider, account)
+    }
   }
 
   const handleShare = () => {
@@ -420,7 +460,7 @@ export default function CampaignDetails({ params }) {
                             campaignId={campaign.id}
                             provider={provider}
                             account={account}
-                            amountRaised={campaign.amountRaisedWei}
+                            contribution={campaign.amountRaisedWei}
                             onSuccess={handleActionSuccess}
                           />
                         </motion.div>

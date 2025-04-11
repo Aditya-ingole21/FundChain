@@ -1,5 +1,16 @@
 "use client"
 
+interface Campaign {
+  id: string
+  name: string
+  description: string
+  creator: string
+  target: string
+  amountRaised: string
+  rawDeadline: number
+  completed: boolean
+}
+
 import Link from "next/link"
 import { motion } from "framer-motion"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
@@ -8,7 +19,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { CircleDollarSign, Clock, User } from "lucide-react"
 
-export default function CampaignCard({ campaign, account }) {
+export default function CampaignCard({ campaign, account }: { campaign: Campaign, account: string }) {
   const progress = (Number.parseFloat(campaign.amountRaised) / Number.parseFloat(campaign.target)) * 100
   const isExpired = campaign.rawDeadline < Math.floor(Date.now() / 1000)
 

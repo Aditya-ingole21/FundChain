@@ -12,11 +12,23 @@ import CampaignSkeleton from "@/components/campaign-skeleton"
 import { getContract } from "@/lib/contract"
 import { ArrowRight, Plus, Sparkles } from "lucide-react"
 
+interface Campaign {
+  id: string
+  creator: string
+  name: string
+  description: string
+  target: string
+  deadline: string
+  amountRaised: string
+  completed: boolean
+  rawDeadline: number
+}
+
 export default function Home() {
-  const [campaigns, setCampaigns] = useState([])
+  const [campaigns, setCampaigns] = useState<Campaign[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [account, setAccount] = useState(null)
-  const [provider, setProvider] = useState(null)
+  const [account, setAccount] = useState<string | null>(null)
+  const [provider, setProvider] = useState<ethers.BrowserProvider | null>(null)
 
   useEffect(() => {
     const init = async () => {
@@ -40,7 +52,7 @@ export default function Home() {
     init()
   }, [])
 
-  const fetchCampaigns = async (provider) => {
+  const fetchCampaigns = async (provider: ethers.BrowserProvider) => {
     try {
       setIsLoading(true)
       const contract = await getContract(provider)
@@ -50,7 +62,7 @@ export default function Home() {
       for (let i = 1; i <= campaignCount; i++) {
         const campaign = await contract.campaigns(i)
         campaignsData.push({
-          id: i,
+          id: i.toString(),
           creator: campaign.CampaignCreator,
           name: campaign.CampaignName,
           description: campaign.CampaignDescription,
@@ -70,7 +82,7 @@ export default function Home() {
     }
   }
 
-  const handleAccountChange = (newAccount) => {
+  const handleAccountChange = (newAccount: string | null) => {
     setAccount(newAccount)
     if (provider) {
       fetchCampaigns(provider)
