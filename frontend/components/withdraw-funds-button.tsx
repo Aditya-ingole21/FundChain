@@ -7,7 +7,7 @@ import { getContract } from "@/lib/contract"
 import { useToast } from "@/hooks/use-toast"
 import { AlertCircle, ArrowLeftRight, Loader2 } from "lucide-react"
 
-export default function RefundButton({ campaignId, provider, account, contribution, onSuccess }) {
+export default function RefundButton({ campaignId, provider, account, contribution, onSuccess }: { campaignId: string; provider: any; account: string; contribution: number; onSuccess?: () => void }) {
   const [isLoading, setIsLoading] = useState(false)
   const { toast } = useToast()
 
@@ -36,7 +36,7 @@ export default function RefundButton({ campaignId, provider, account, contributi
       console.error("Error processing refund:", error)
       toast({
         title: "Error processing refund",
-        description: error.message || "An error occurred while processing your refund",
+        description: error instanceof Error ? error.message : "An error occurred while processing your refund",
         variant: "destructive",
       })
     } finally {

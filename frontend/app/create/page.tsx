@@ -49,7 +49,7 @@ export default function CreateCampaign() {
     init()
   }, [])
 
-  const handleAccountChange = (newAccount: string) => {
+  const handleAccountChange = (newAccount: string | null) => {
     setAccount(newAccount)
   }
 

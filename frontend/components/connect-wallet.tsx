@@ -7,13 +7,21 @@ import { Button } from "@/components/ui/button"
 import { useToast } from "@/hooks/use-toast"
 import { Loader2, Wallet } from "lucide-react"
 
+interface ConnectWalletProps {
+  account: string | null;
+  onAccountChange: (address: string | null) => void;
+  buttonText?: string;
+  size?: "default" | "sm" | "lg";
+  variant?: "default" | "destructive" | "outline" | "secondary" | "ghost" | "link";
+}
+
 export default function ConnectWallet({
   account,
   onAccountChange,
   buttonText = "Connect Wallet",
   size = "default",
   variant = "default",
-}) {
+}: ConnectWalletProps) {
   const [isConnecting, setIsConnecting] = useState(false)
   const { toast } = useToast()
 
@@ -45,7 +53,7 @@ export default function ConnectWallet({
       console.error("Error connecting wallet:", error)
       toast({
         title: "Connection failed",
-        description: error.message || "Failed to connect wallet",
+        description: error instanceof Error ? error.message : "Failed to connect wallet",
         variant: "destructive",
       })
     } finally {

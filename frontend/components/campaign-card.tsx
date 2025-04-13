@@ -19,9 +19,15 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { CircleDollarSign, Clock, User } from "lucide-react"
 
-export default function CampaignCard({ campaign, account }: { campaign: Campaign, account: string }) {
+interface CampaignCardProps {
+  campaign: Campaign
+  account: string | null // Updated to accept null
+}
+
+export default function CampaignCard({ campaign, account }: CampaignCardProps) {
   const progress = (Number.parseFloat(campaign.amountRaised) / Number.parseFloat(campaign.target)) * 100
   const isExpired = campaign.rawDeadline < Math.floor(Date.now() / 1000)
+  const isCreator = account ? account.toLowerCase() === campaign.creator.toLowerCase() : false
 
   const item = {
     hidden: { opacity: 0, y: 20 },
@@ -37,6 +43,11 @@ export default function CampaignCard({ campaign, account }: { campaign: Campaign
               <User className="h-3 w-3 mr-1" />
               <span className="truncate">
                 {campaign.creator.slice(0, 6)}...{campaign.creator.slice(-4)}
+                {isCreator && (
+                  <Badge variant="outline" className="ml-2 text-xs">
+                    You
+                  </Badge>
+                )}
               </span>
             </div>
             {campaign.completed ? (

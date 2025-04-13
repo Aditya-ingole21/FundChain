@@ -164,7 +164,7 @@ export default function CampaignDetails() {
     return "Less than an hour left"
   }
 
-  const handleAccountChange = async (newAccount: string) => {
+  const handleAccountChange = async (newAccount: string | null) => {
     setAccount(newAccount)
     if (provider && newAccount) {
       await fetchCampaignDetails(provider, newAccount)
@@ -436,7 +436,7 @@ export default function CampaignDetails() {
                     </div>
                   ) : (
                     <div className="space-y-6">
-                      {!campaign.isExpired && !campaign.completed && (
+                      {!campaign.isExpired && !campaign.completed && provider && (
                         <motion.div
                           initial={{ opacity: 0, y: 10 }}
                           animate={{ opacity: 1, y: 0 }}
@@ -458,10 +458,10 @@ export default function CampaignDetails() {
                           transition={{ delay: 0.3, duration: 0.5 }}
                         >
                           <WithdrawFundsButton
-                            campaignId={campaign.id}
+                            campaignId={campaign.id.toString()}
                             provider={provider}
                             account={account}
-                            contribution={campaign.amountRaisedWei}
+                            contribution={Number(campaign.amountRaisedWei)}
                             onSuccess={handleActionSuccess}
                           />
                         </motion.div>
@@ -489,10 +489,10 @@ export default function CampaignDetails() {
                           transition={{ delay: 0.4, duration: 0.5 }}
                         >
                           <RefundButton
-                            campaignId={campaign.id}
+                            campaignId={campaign.id.toString()}
                             provider={provider}
                             account={account}
-                            contribution={userContribution}
+                            contribution={Number(userContribution)}
                             onSuccess={handleActionSuccess}
                           />
                         </motion.div>

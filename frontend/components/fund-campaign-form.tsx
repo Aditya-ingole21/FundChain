@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, FormEvent } from "react"
 import { ethers } from "ethers"
 import { motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
@@ -10,12 +10,12 @@ import { getContract } from "@/lib/contract"
 import { useToast } from "@/hooks/use-toast"
 import { CircleDollarSign, Loader2 } from "lucide-react"
 
-export default function FundCampaignForm({ campaignId, provider, account, onSuccess }) {
+export default function FundCampaignForm({ campaignId, provider, account, onSuccess }: { campaignId: number, provider: ethers.BrowserProvider, account: string, onSuccess?: () => void }) {
   const [amount, setAmount] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const { toast } = useToast()
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
 
     if (!amount || Number.parseFloat(amount) <= 0) {
@@ -56,7 +56,7 @@ export default function FundCampaignForm({ campaignId, provider, account, onSucc
       console.error("Error funding campaign:", error)
       toast({
         title: "Error funding campaign",
-        description: error.message || "An error occurred while funding the campaign",
+        description: error instanceof Error ? error.message : "An error occurred while funding the campaign",
         variant: "destructive",
       })
     } finally {
