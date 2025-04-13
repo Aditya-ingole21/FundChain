@@ -1,14 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-
-// Extend the Window interface to include the ethereum property
-declare global {
-  interface Window {
-    ethereum?: any;
-  }
-}
-import { useRouter } from "next/navigation"
+import { useRouter, useParams } from "next/navigation"
 import { ethers } from "ethers"
 import { motion, AnimatePresence } from "framer-motion"
 import { Button } from "@/components/ui/button"
@@ -39,32 +32,36 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 
-interface CampaignDetailsProps {
-  params: {
-    id: string;
-  };
+declare global {
+  interface Window {
+    ethereum?: any
+  }
 }
 
-export default function CampaignDetails({ params }: CampaignDetailsProps) {
+interface Campaign {
+  id: number
+  creator: string
+  name: string
+  description: string
+  target: string
+  targetWei: string
+  deadline: string
+  deadlineTimestamp: number
+  amountRaised: string
+  amountRaisedWei: string
+  amountWithdrawn: string
+  amountRefunded: string
+  completed: boolean
+  isExpired: boolean
+  progress: number
+  timeLeft: string
+}
+
+export default function CampaignDetails() {
+  const params = useParams()
   const { id } = params
-  interface Campaign {
-    id: number;
-    creator: string;
-    name: string;
-    description: string;
-    target: string;
-    targetWei: string;
-    deadline: string;
-    deadlineTimestamp: number;
-    amountRaised: string;
-    amountRaisedWei: string;
-    amountWithdrawn: string;
-    amountRefunded: string;
-    completed: boolean;
-    isExpired: boolean;
-    progress: number;
-    timeLeft: string;
-  }
+  const router = useRouter()
+  const { toast } = useToast()
 
   const [campaign, setCampaign] = useState<Campaign | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -73,9 +70,6 @@ export default function CampaignDetails({ params }: CampaignDetailsProps) {
   const [userContribution, setUserContribution] = useState("0")
   const [progressValue, setProgressValue] = useState(0)
   const [activeTab, setActiveTab] = useState("details")
-
-  const router = useRouter()
-  const { toast } = useToast()
 
   useEffect(() => {
     const init = async () => {
@@ -92,16 +86,20 @@ export default function CampaignDetails({ params }: CampaignDetailsProps) {
           await fetchCampaignDetails(provider, accounts.length > 0 ? accounts[0].address : null)
         } catch (error) {
           console.error("Error initializing:", error)
+          toast({
+            title: "Error",
+            description: "Failed to connect to wallet",
+            variant: "destructive",
+          })
         }
       }
     }
 
     init()
-  }, [id])
+  }, [id, toast])
 
   useEffect(() => {
     if (campaign) {
-      // Animate progress bar
       const timer = setTimeout(() => {
         setProgressValue(campaign.progress)
       }, 300)
@@ -116,8 +114,7 @@ export default function CampaignDetails({ params }: CampaignDetailsProps) {
 
       const campaignData = await contract.campaigns(id)
 
-      // Format campaign data
-      const formattedCampaign = {
+      const formattedCampaign: Campaign = {
         id: Number(id),
         creator: campaignData.CampaignCreator,
         name: campaignData.CampaignName,
@@ -138,9 +135,8 @@ export default function CampaignDetails({ params }: CampaignDetailsProps) {
 
       setCampaign(formattedCampaign)
 
-      // Get user contribution if connected
       if (userAddress) {
-        const contribution = await contract.contributions(userAddress)
+        const contribution = await contract.contributions(id, userAddress)
         setUserContribution(ethers.formatEther(contribution))
       }
     } catch (error) {
@@ -177,11 +173,7 @@ export default function CampaignDetails({ params }: CampaignDetailsProps) {
 
   const handleFundingSuccess = async () => {
     if (provider) {
-      if (provider) {
-        if (provider) {
-          await fetchCampaignDetails(provider, account)
-        }
-      }
+      await fetchCampaignDetails(provider, account)
     }
   }
 
@@ -191,23 +183,32 @@ export default function CampaignDetails({ params }: CampaignDetailsProps) {
     }
   }
 
-  const handleShare = () => {
+  const handleShare = async () => {
     if (navigator.share) {
-      navigator
-        .share({
+      try {
+        await navigator.share({
           title: `FundChain: ${campaign?.name}`,
           text: `Check out this campaign: ${campaign?.name}`,
           url: window.location.href,
         })
-        .catch((err) => {
-          console.error("Error sharing:", err)
-        })
+      } catch (err) {
+        console.error("Error sharing:", err)
+      }
     } else {
-      navigator.clipboard.writeText(window.location.href)
-      toast({
-        title: "Link copied",
-        description: "Campaign link copied to clipboard",
-      })
+      try {
+        await navigator.clipboard.writeText(window.location.href)
+        toast({
+          title: "Link copied",
+          description: "Campaign link copied to clipboard",
+        })
+      } catch (err) {
+        console.error("Failed to copy link:", err)
+        toast({
+          title: "Error",
+          description: "Failed to copy link to clipboard",
+          variant: "destructive",
+        })
+      }
     }
   }
 
